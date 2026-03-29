@@ -1,9 +1,9 @@
-import { UploadResponse, RunStatus, Finding, AuditorError } from '../types/UploadState';
+import { UploadResponse, RunStatus, AuditorError, ReportUrlResponse } from '../types/UploadState';
 
 export class AuditorAPIClient {
   private static instance: AuditorAPIClient;
-  private readonly baseURL = 'https://auditor-edge.18tyler-rosa1.workers.dev';
-  private readonly jwtSecret = 'cyZwlCFe8WIwvip6Lf5SMcb1eIYh7nqz9WUryMa5CtM';
+  private readonly baseURL =
+    import.meta.env.VITE_AUDITOR_BASE_URL ?? 'https://auditor-edge.evanhaque1.workers.dev';
 
   private constructor() {}
 
@@ -43,8 +43,9 @@ export class AuditorAPIClient {
     presignedURL: string,
     contentType: string
   ): Promise<void> {
+    const isDirectWorkerUpload = presignedURL.includes('/uploads/direct/');
     const response = await fetch(presignedURL, {
-      method: 'PUT',
+      method: isDirectWorkerUpload ? 'POST' : 'PUT',
       headers: {
         'Content-Type': contentType,
       },
@@ -82,11 +83,11 @@ export class AuditorAPIClient {
     return response.json();
   }
 
-  async getFindings(runId: string): Promise<Finding[]> {
-    const response = await fetch(`${this.baseURL}/runs/${runId}/findings`);
+  async getReportUrl(runId: string): Promise<ReportUrlResponse> {
+    const response = await fetch(`${this.baseURL}/runs/${runId}/report`);
 
     if (!response.ok) {
-      throw new AuditorError(`Failed to get findings: ${response.statusText}`);
+      throw new AuditorError(`Failed to get report URL: ${response.statusText}`);
     }
 
     return response.json();

@@ -7,6 +7,7 @@ export class WebSocketManager {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
+  private shouldReconnect = false;
 
   // Event callbacks
   private onProgressCallback?: (data: ProgressData) => void;
@@ -25,10 +26,12 @@ export class WebSocketManager {
 
   public connect(runId: string): void {
     this.runId = runId;
+    this.shouldReconnect = true;
     this.connectWebSocket();
   }
 
   public disconnect(): void {
+    this.shouldReconnect = false;
     if (this.webSocket) {
       this.webSocket.close();
       this.webSocket = null;
@@ -56,7 +59,9 @@ export class WebSocketManager {
   private connectWebSocket(): void {
     if (!this.runId) return;
 
-    const wsUrl = `wss://auditor-edge.18tyler-rosa1.workers.dev/ws/run/${this.runId}`;
+    const baseUrl =
+      import.meta.env.VITE_AUDITOR_BASE_URL ?? 'https://auditor-edge.evanhaque1.workers.dev';
+    const wsUrl = `${baseUrl.replace(/^http/, 'ws')}/ws/run/${this.runId}`;
     
     try {
       this.webSocket = new WebSocket(wsUrl);
@@ -80,7 +85,9 @@ export class WebSocketManager {
       this.webSocket.onclose = () => {
         console.log('WebSocket disconnected');
         this.onDisconnectedCallback?.();
-        this.attemptReconnect();
+        if (this.shouldReconnect) {
+          this.attemptReconnect();
+        }
       };
 
       this.webSocket.onerror = (error) => {

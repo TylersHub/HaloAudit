@@ -12,6 +12,10 @@ poetry install
 
 # Or using pip
 pip install -e .
+
+or
+
+pip install -r requirements.txt
 ```
 
 ## Step 2: Configure Environment

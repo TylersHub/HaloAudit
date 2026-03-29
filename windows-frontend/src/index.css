@@ -7,13 +7,73 @@
     @apply border-border;
   }
   
+  html,
+  body,
+  #root {
+    height: 100%;
+    width: 100%;
+  }
+
   body {
     @apply bg-transparent text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: "Segoe UI Variable", "Segoe UI", sans-serif;
+    overflow: hidden;
+    margin: 0;
+  }
+
+  #root {
+    background: transparent;
   }
 }
 
 @layer components {
+  .notch-shell {
+    @apply border border-white/10 shadow-2xl backdrop-blur-2xl;
+    box-shadow:
+      0 20px 60px rgba(2, 6, 23, 0.6),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.03);
+    background-image:
+      radial-gradient(circle at top, rgba(255, 255, 255, 0.12), transparent 34%),
+      linear-gradient(180deg, rgba(15, 23, 42, 0.94), rgba(2, 6, 23, 0.98));
+  }
+
+  .notch-panel {
+    @apply border border-white/10 bg-slate-900/55 backdrop-blur-xl;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      0 12px 32px rgba(15, 23, 42, 0.28);
+  }
+
+  .notch-noise {
+    background-image:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 42%),
+      radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.08), transparent 28%),
+      radial-gradient(circle at 80% 0%, rgba(52, 211, 153, 0.08), transparent 24%);
+  }
+
+  .notch-camera-cluster {
+    @apply flex items-center gap-1.5 rounded-full px-2.5 py-1.5;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.45);
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.05);
+  }
+
+  .notch-camera-dot {
+    @apply block h-2.5 w-2.5 rounded-full bg-slate-700;
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08);
+  }
+
+  .notch-camera-dot-primary {
+    background:
+      radial-gradient(circle at 35% 35%, rgba(125, 211, 252, 0.8), rgba(37, 99, 235, 0.1) 40%),
+      #0f172a;
+    box-shadow:
+      0 0 10px rgba(56, 189, 248, 0.2),
+      inset 0 1px 1px rgba(255, 255, 255, 0.08);
+  }
+
   .glass-effect {
     @apply bg-white/10 backdrop-blur-md border border-white/20;
   }
@@ -26,11 +86,18 @@
   }
   
   .upload-zone {
-    @apply border-2 border-dashed border-gray-300 rounded-xl p-8 text-center transition-all duration-200;
+    @apply flex w-full max-w-[480px] cursor-pointer flex-col items-center justify-center rounded-[24px] border border-dashed border-white/15 px-8 py-6 text-center transition-all duration-200;
+    background:
+      linear-gradient(180deg, rgba(15, 23, 42, 0.54), rgba(2, 6, 23, 0.68)),
+      rgba(15, 23, 42, 0.35);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   }
   
   .upload-zone.drag-over {
-    @apply border-blue-500 bg-blue-50/50;
+    @apply border-cyan-300/60;
+    background:
+      radial-gradient(circle at top, rgba(34, 211, 238, 0.18), transparent 42%),
+      linear-gradient(180deg, rgba(8, 47, 73, 0.78), rgba(2, 6, 23, 0.82));
   }
   
   .progress-ring {

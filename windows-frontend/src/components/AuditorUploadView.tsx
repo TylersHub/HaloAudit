@@ -6,6 +6,7 @@ import {
   AlertCircle,
   CheckCircle,
   Loader2,
+  ExternalLink,
 } from "lucide-react";
 import { AuditorViewModel } from "../services/AuditorViewModel";
 import { UploadState } from "../types/UploadState";
@@ -16,6 +17,7 @@ export const AuditorUploadView: React.FC = () => {
   const [statusMessage, setStatusMessage] = useState(viewModel.statusMessage);
   const [progress, setProgress] = useState(viewModel.progress);
   const [currentPhase, setCurrentPhase] = useState(viewModel.currentPhase);
+  const [reportReady, setReportReady] = useState(Boolean(viewModel.reportUrl));
 
   useEffect(() => {
     const handleStateChange = (data: any) => {
@@ -23,6 +25,9 @@ export const AuditorUploadView: React.FC = () => {
       setStatusMessage(data.message);
       if (data.progress !== undefined) {
         setProgress(data.progress);
+      }
+      if (data.state === UploadState.IDLE || data.state === UploadState.FAILED) {
+        setReportReady(false);
       }
     };
 
@@ -32,6 +37,10 @@ export const AuditorUploadView: React.FC = () => {
       setStatusMessage(data.lastMessage);
     };
 
+    const handleReportReady = () => {
+      setReportReady(true);
+    };
+
     const handleError = (error: any) => {
       setUploadState(UploadState.FAILED);
       setStatusMessage(`Error: ${error}`);
@@ -39,11 +48,13 @@ export const AuditorUploadView: React.FC = () => {
 
     viewModel.on("stateChange", handleStateChange);
     viewModel.on("progress", handleProgress);
+    viewModel.on("reportReady", handleReportReady);
     viewModel.on("error", handleError);
 
     return () => {
       viewModel.off("stateChange", handleStateChange);
       viewModel.off("progress", handleProgress);
+      viewModel.off("reportReady", handleReportReady);
       viewModel.off("error", handleError);
     };
   }, [viewModel]);
@@ -74,11 +85,15 @@ export const AuditorUploadView: React.FC = () => {
     try {
       const result = await window.electronAPI.showFileDialog();
       if (!result.canceled && result.filePaths.length > 0) {
-        // Convert file path to File object
         const filePath = result.filePaths[0];
-        const response = await fetch(`file://${filePath}`);
-        const blob = await response.blob();
-        const file = new File([blob], filePath.split("\\").pop() || "file", {
+        const fileData = await window.electronAPI.readFile(filePath);
+        const extension = fileData.name.split(".").pop()?.toLowerCase();
+        const mimeType =
+          extension === "csv" ? "text/csv" : extension === "pdf" ? "application/pdf" : "";
+        const blob = new Blob([new Uint8Array(fileData.data)], {
+          type: mimeType || "application/octet-stream",
+        });
+        const file = new File([blob], fileData.name, {
           type: blob.type,
         });
         await viewModel.uploadFile(file);
@@ -94,29 +109,31 @@ export const AuditorUploadView: React.FC = () => {
         return (
           <div
             {...getRootProps()}
-            className={`upload-zone ${isDragActive ? "drag-over" : ""}`}
+            className={`upload-zone h-full ${isDragActive ? "drag-over" : ""}`}
           >
             <input {...getInputProps()} />
             <div className="flex flex-col items-center space-y-4">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                <Upload className="w-8 h-8 text-blue-600" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-[1.35rem] bg-cyan-400/12 ring-1 ring-inset ring-cyan-200/20">
+                <Upload className="h-8 w-8 text-cyan-200" />
               </div>
               <div className="text-center">
-                <h3 className="text-lg font-medium text-gray-900">
+                <h3 className="text-lg font-medium text-slate-50">
                   {isDragActive
                     ? "Drop your file here"
-                    : "Drag & drop PDF or CSV"}
+                    : "Drop a PDF or CSV into the notch"}
                 </h3>
-                <p className="text-sm text-gray-500 mt-1">or</p>
+                <p className="mt-1 text-sm text-slate-400">
+                  Fast upload, live progress, and an instant report link.
+                </p>
                 <button
                   onClick={handleFilePicker}
-                  className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="mt-4 rounded-full bg-white px-4 py-2 text-sm font-medium text-slate-950 transition-colors hover:bg-slate-200"
                 >
                   Choose File
                 </button>
               </div>
-              <p className="text-xs text-gray-400">
-                Supported: PDF, CSV • Max 100MB
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                Supported: PDF, CSV | Max 100MB
               </p>
             </div>
           </div>
@@ -124,21 +141,21 @@ export const AuditorUploadView: React.FC = () => {
 
       case UploadState.UPLOADING:
         return (
-          <div className="flex flex-col items-center space-y-4 p-8">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-              <Upload className="w-8 h-8 text-blue-600" />
+          <div className="flex h-full flex-col items-center justify-center space-y-4 px-8 py-6">
+            <div className="flex h-16 w-16 items-center justify-center rounded-[1.35rem] bg-cyan-400/12 ring-1 ring-inset ring-cyan-200/20">
+              <Upload className="h-8 w-8 text-cyan-200" />
             </div>
             <div className="text-center">
-              <h3 className="text-lg font-medium text-gray-900">
+              <h3 className="text-lg font-medium text-slate-50">
                 {statusMessage}
               </h3>
-              <div className="w-64 bg-gray-200 rounded-full h-2 mt-4">
+              <div className="mt-4 h-2 w-72 rounded-full bg-white/10">
                 <div
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  className="h-2 rounded-full bg-gradient-to-r from-cyan-300 via-sky-400 to-emerald-300 transition-all duration-300"
                   style={{ width: `${progress}%` }}
                 />
               </div>
-              <p className="text-sm text-gray-500 mt-2">
+              <p className="mt-2 text-sm text-slate-400">
                 {Math.round(progress)}%
               </p>
             </div>
@@ -147,11 +164,12 @@ export const AuditorUploadView: React.FC = () => {
 
       case UploadState.PROCESSING:
         return (
-          <div className="flex flex-col items-center space-y-4 p-8">
+          <div className="flex h-full flex-col items-center justify-center space-y-4 px-8 py-6">
             <div className="relative">
-              <svg className="w-20 h-20 progress-ring" viewBox="0 0 100 100">
+              <div className="absolute inset-2 rounded-full bg-cyan-300/10 blur-xl" />
+              <svg className="progress-ring h-20 w-20" viewBox="0 0 100 100">
                 <circle
-                  className="progress-ring-circle stroke-gray-200"
+                  className="progress-ring-circle stroke-white/10"
                   strokeWidth="8"
                   fill="transparent"
                   r="40"
@@ -159,7 +177,7 @@ export const AuditorUploadView: React.FC = () => {
                   cy="50"
                 />
                 <circle
-                  className="progress-ring-circle stroke-blue-600"
+                  className="progress-ring-circle stroke-cyan-300"
                   strokeWidth="8"
                   fill="transparent"
                   r="40"
@@ -172,17 +190,19 @@ export const AuditorUploadView: React.FC = () => {
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
-                <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+                <Loader2 className="h-8 w-8 animate-spin text-cyan-200" />
               </div>
             </div>
             <div className="text-center">
-              <h3 className="text-lg font-medium text-gray-900">
+              <h3 className="text-lg font-medium text-slate-50">
                 {currentPhase}
               </h3>
-              <p className="text-sm text-gray-500 mt-1">{statusMessage}</p>
-              <div className="flex items-center justify-center mt-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2" />
-                <span className="text-xs text-green-600">Live</span>
+              <p className="mt-1 text-sm text-slate-400">{statusMessage}</p>
+              <div className="mt-3 flex items-center justify-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-xs uppercase tracking-[0.22em] text-emerald-300">
+                  Live
+                </span>
               </div>
             </div>
           </div>
@@ -190,44 +210,61 @@ export const AuditorUploadView: React.FC = () => {
 
       case UploadState.COMPLETED:
         return (
-          <div className="flex flex-col items-center space-y-4 p-8">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-              <CheckCircle className="w-8 h-8 text-green-600" />
+          <div className="flex h-full flex-col items-center justify-center space-y-4 px-8 py-6">
+            <div className="flex h-16 w-16 items-center justify-center rounded-[1.35rem] bg-emerald-400/12 ring-1 ring-inset ring-emerald-200/20">
+              <CheckCircle className="h-8 w-8 text-emerald-200" />
             </div>
             <div className="text-center">
-              <h3 className="text-lg font-medium text-gray-900">
+              <h3 className="text-lg font-medium text-slate-50">
                 Audit Complete!
               </h3>
-              <p className="text-sm text-gray-500 mt-1">{statusMessage}</p>
+              <p className="mt-1 text-sm text-slate-400">{statusMessage}</p>
               {viewModel.currentRun && (
-                <p className="text-xs text-gray-400 mt-2">
+                <p className="mt-2 text-xs text-slate-500">
                   Run ID: {viewModel.currentRun.runId}
                 </p>
               )}
-              <button
-                onClick={() => viewModel.reset()}
-                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Upload Another
-              </button>
+              <div className="mt-4 flex items-center justify-center gap-3">
+                <button
+                  onClick={() => {
+                    void viewModel.openReport().catch((error) => {
+                      console.error("Failed to open report:", error);
+                    });
+                  }}
+                  disabled={!reportReady}
+                  className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-slate-950 transition-colors hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Show Report
+                </button>
+                <button
+                  onClick={() => {
+                    setReportReady(false);
+                    viewModel.reset();
+                  }}
+                  className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-100 transition-colors hover:bg-white/10"
+                >
+                  Upload Another
+                </button>
+              </div>
             </div>
           </div>
         );
 
       case UploadState.FAILED:
         return (
-          <div className="flex flex-col items-center space-y-4 p-8">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-              <AlertCircle className="w-8 h-8 text-red-600" />
+          <div className="flex h-full flex-col items-center justify-center space-y-4 px-8 py-6">
+            <div className="flex h-16 w-16 items-center justify-center rounded-[1.35rem] bg-rose-400/12 ring-1 ring-inset ring-rose-200/20">
+              <AlertCircle className="h-8 w-8 text-rose-200" />
             </div>
             <div className="text-center">
-              <h3 className="text-lg font-medium text-gray-900">
+              <h3 className="text-lg font-medium text-slate-50">
                 Upload Failed
               </h3>
-              <p className="text-sm text-gray-500 mt-1">{statusMessage}</p>
+              <p className="mt-1 text-sm text-slate-400">{statusMessage}</p>
               <button
                 onClick={() => viewModel.reset()}
-                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="mt-4 rounded-full bg-white px-4 py-2 text-sm font-medium text-slate-950 transition-colors hover:bg-slate-200"
               >
                 Try Again
               </button>
@@ -241,15 +278,20 @@ export const AuditorUploadView: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col">
-      {/* Header */}
-      <div className="flex items-center space-x-2 p-4 pb-2">
-        <FileText className="w-5 h-5 text-blue-600" />
-        <h2 className="text-lg font-semibold text-gray-800">Audit Assistant</h2>
+    <div className="flex h-full flex-1 flex-col px-4 pb-4 pt-3">
+      <div className="flex items-center justify-between px-1 pb-2">
+        <div className="flex items-center space-x-2">
+          <FileText className="h-4 w-4 text-cyan-300" />
+          <h2 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-300">
+            Auditor
+          </h2>
+        </div>
+        <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.22em] text-slate-400">
+          Desktop
+        </span>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center">
+      <div className="notch-panel flex flex-1 items-center justify-center overflow-hidden rounded-[26px]">
         {renderContent()}
       </div>
     </div>

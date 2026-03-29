@@ -13,6 +13,7 @@ export class AuditorViewModel {
   public statusMessage: string = 'Ready to upload';
   public progress: number = 0;
   public currentPhase: string = '';
+  public reportUrl: string | null = null;
 
   // Event listeners
   private listeners: Map<string, Function[]> = new Map();
@@ -107,13 +108,13 @@ export class AuditorViewModel {
         if (status.status === 'done') {
           this.updateState(UploadState.COMPLETED, 'Processing complete!');
           this.webSocketManager.disconnect();
-          
-          // Fetch findings
+
           try {
-            this.findings = await this.apiClient.getFindings(runId);
-            this.emit('findings', this.findings);
+            const report = await this.apiClient.getReportUrl(runId);
+            this.reportUrl = report.reportUrl;
+            this.emit('reportReady', report);
           } catch (error) {
-            console.error('Failed to fetch findings:', error);
+            console.error('Failed to fetch report URL:', error);
           }
           return;
         } else if (status.status === 'error') {
@@ -134,8 +135,28 @@ export class AuditorViewModel {
     this.statusMessage = 'Ready to upload';
     this.progress = 0;
     this.currentPhase = '';
+    this.reportUrl = null;
     this.webSocketManager.disconnect();
     this.emit('reset');
+  }
+
+  public async openReport(): Promise<void> {
+    const runId = this.currentRun?.runId;
+    if (!runId) {
+      throw new AuditorError('No completed run is available yet.');
+    }
+
+    if (!this.reportUrl) {
+      const report = await this.apiClient.getReportUrl(runId);
+      this.reportUrl = report.reportUrl;
+    }
+
+    const reportUrl = this.reportUrl;
+    if (!reportUrl) {
+      throw new AuditorError('Report URL is not available yet.');
+    }
+
+    await window.electronAPI.openExternalUrl(reportUrl);
   }
 
   private updateState(state: UploadState, message: string, progress?: number): void {

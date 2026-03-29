@@ -51,6 +51,11 @@ export interface ProgressData {
   lastUpdated?: number;
 }
 
+export interface ReportUrlResponse {
+  reportUrl: string;
+  reportKey: string;
+}
+
 export class AuditorError extends Error {
   constructor(message: string, public code?: string) {
     super(message);

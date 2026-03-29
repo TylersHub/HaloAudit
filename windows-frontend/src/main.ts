@@ -1,7 +1,7 @@
 // main.ts
 import {
   app, BrowserWindow, ipcMain, dialog, globalShortcut,
-  Tray, Menu, nativeImage, Event
+  Tray, Menu, nativeImage, Event, shell
 } from 'electron';
 import { screen } from 'electron';
 import * as path from 'path';
@@ -36,8 +36,8 @@ const topCenterFor = (width: number, height: number) => {
 };
 
 // Cache the notch size once and never read width/height during animation
-let NOTCH_WIDTH = 520;
-let NOTCH_HEIGHT = 140;
+let NOTCH_WIDTH = 560;
+let NOTCH_HEIGHT = 236;
 
 const placeMainAtTopCenter = () => {
   if (!mainWindow) return;
@@ -144,7 +144,7 @@ function createMainWindow() {
 
   mainWindow = new BrowserWindow({
     width: NOTCH_WIDTH, height: NOTCH_HEIGHT,
-    minWidth: 480, maxWidth: 640, minHeight: 120, maxHeight: 168,
+    minWidth: 320, maxWidth: 580, minHeight: 44, maxHeight: 260,
     useContentSize: true,
     frame: false, transparent: true, resizable: false, alwaysOnTop: true,
     skipTaskbar: true, hasShadow: false, focusable: true, backgroundColor: '#00000000',
@@ -177,9 +177,6 @@ function createMainWindow() {
 
     placeMainAtTopCenter();
     placeEdgeActivator();
-
-    // Apply Acrylic once; never change during motion
-    try { (mainWindow as any).setBackgroundMaterial?.('acrylic'); } catch {}
   });
 
   mainWindow.on('minimize', () => mainWindow?.hide());
@@ -272,6 +269,18 @@ ipcMain.handle('show-file-dialog', async () => {
     ],
   });
   return result;
+});
+ipcMain.handle('read-file', async (_event, filePath: string) => {
+  const fs = await import('fs/promises');
+  const pathModule = await import('path');
+  const buffer = await fs.readFile(filePath);
+  return {
+    data: Array.from(buffer),
+    name: pathModule.basename(filePath),
+  };
+});
+ipcMain.handle('open-external-url', async (_event, url: string) => {
+  await shell.openExternal(url);
 });
 ipcMain.handle('show-window', () => { placeMainAtTopCenter(); revealNotch().catch(() => {}); });
 ipcMain.handle('hide-window', () => { hideNotch().catch(() => {}); });
