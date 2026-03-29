@@ -5,14 +5,10 @@ import {
 } from 'electron';
 import { screen } from 'electron';
 import * as path from 'path';
-import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-let mainWindow: BrowserWindow | null = null;   // notch
-let edgeWindow: BrowserWindow | null = null;   // top-edge activator
-let tray: Tray | null = null;
+let mainWindow: InstanceType<typeof BrowserWindow> | null = null;   // notch
+let edgeWindow: InstanceType<typeof BrowserWindow> | null = null;   // top-edge activator
+let tray: InstanceType<typeof Tray> | null = null;
 
 const isWin = process.platform === 'win32';
 const isMac = process.platform === 'darwin';
@@ -36,8 +32,11 @@ const topCenterFor = (width: number, height: number) => {
 };
 
 // Cache the notch size once and never read width/height during animation
-let NOTCH_WIDTH = 560;
-let NOTCH_HEIGHT = 236;
+const COMPACT_NOTCH = { width: 448, height: 96 };
+const EXPANDED_NOTCH = { width: 448, height: 96 };
+
+let NOTCH_WIDTH = EXPANDED_NOTCH.width;
+let NOTCH_HEIGHT = EXPANDED_NOTCH.height;
 
 const placeMainAtTopCenter = () => {
   if (!mainWindow) return;
@@ -96,6 +95,62 @@ function animateY(fromY: number, toY: number, durationMs: number) {
   });
 }
 
+function animateBoundsTo(width: number, height: number, durationMs: number) {
+  if (!mainWindow) return Promise.resolve();
+  const windowRef = mainWindow;
+
+  return new Promise<void>((resolve) => {
+    const start = Date.now();
+    const initial = windowRef.getBounds();
+    const target = topCenterFor(width, height);
+
+    const step = () => {
+      if (!mainWindow || mainWindow !== windowRef) return resolve();
+
+      const now = Date.now();
+      const t = Math.min(1, (now - start) / durationMs);
+      const e = easeOutCubic(t);
+
+      const nextWidth = Math.round(initial.width + (target.width - initial.width) * e);
+      const nextHeight = Math.round(initial.height + (target.height - initial.height) * e);
+      const nextX = Math.round(initial.x + (target.x - initial.x) * e);
+      const nextY = Math.round(initial.y + (target.y - initial.y) * e);
+
+      try {
+        windowRef.setBounds({
+          x: nextX,
+          y: nextY,
+          width: nextWidth,
+          height: nextHeight,
+        });
+      } catch {
+        return resolve();
+      }
+
+      if (t < 1) {
+        setTimeout(step, 16);
+      } else {
+        resolve();
+      }
+    };
+
+    step();
+  });
+}
+
+async function syncNotchBounds(_expanded: boolean) {
+  if (!mainWindow) return;
+
+  const target = EXPANDED_NOTCH;
+  NOTCH_WIDTH = target.width;
+  NOTCH_HEIGHT = target.height;
+  placeEdgeActivator();
+
+  if (!mainWindow.isVisible()) return;
+
+  await animateBoundsTo(target.width, target.height, 0);
+}
+
 const revealNotch = async () => {
   if (!mainWindow || animating || mainWindow.isVisible()) return;
 
@@ -144,7 +199,7 @@ function createMainWindow() {
 
   mainWindow = new BrowserWindow({
     width: NOTCH_WIDTH, height: NOTCH_HEIGHT,
-    minWidth: 320, maxWidth: 580, minHeight: 44, maxHeight: 260,
+    minWidth: 448, maxWidth: 448, minHeight: 96, maxHeight: 96,
     useContentSize: true,
     frame: false, transparent: true, resizable: false, alwaysOnTop: true,
     skipTaskbar: true, hasShadow: false, focusable: true, backgroundColor: '#00000000',
@@ -152,7 +207,7 @@ function createMainWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, 'preload.cjs'),
       backgroundThrottling: false,
     },
     show: false,
@@ -177,10 +232,28 @@ function createMainWindow() {
 
     placeMainAtTopCenter();
     placeEdgeActivator();
+
+    setTimeout(() => {
+      if (!mainWindow || mainWindow.isVisible()) return;
+      NOTCH_WIDTH = EXPANDED_NOTCH.width;
+      NOTCH_HEIGHT = EXPANDED_NOTCH.height;
+      placeMainAtTopCenter();
+      placeEdgeActivator();
+      revealNotch().catch(() => {});
+    }, 350);
   });
 
-  mainWindow.on('minimize', () => mainWindow?.hide());
-  mainWindow.on('close', (e: Event) => { if (!isMac) { e.preventDefault(); mainWindow?.hide(); } });
+  mainWindow.on('minimize', () => {
+    if (!isDev) {
+      mainWindow?.hide();
+    }
+  });
+  mainWindow.on('close', (e: Event) => {
+    if (!isMac && !isDev) {
+      e.preventDefault();
+      mainWindow?.hide();
+    }
+  });
 
   mainWindow.on('move', () => {
     if (!mainWindow) return;
@@ -234,6 +307,7 @@ function createEdgeWindow() {
 
 // ---- tray + shortcuts ----
 function createTray() {
+  if (isDev) return;
   if (tray) return;
   const icon = nativeImage.createFromPath(path.join(__dirname, 'icon.png'));
   tray = new Tray(icon);
@@ -282,17 +356,29 @@ ipcMain.handle('read-file', async (_event, filePath: string) => {
 ipcMain.handle('open-external-url', async (_event, url: string) => {
   await shell.openExternal(url);
 });
-ipcMain.handle('show-window', () => { placeMainAtTopCenter(); revealNotch().catch(() => {}); });
+ipcMain.handle('set-notch-expanded', async (_event, expanded: boolean) => {
+  await syncNotchBounds(expanded);
+});
+ipcMain.handle('show-window', () => {
+  const target = EXPANDED_NOTCH;
+  NOTCH_WIDTH = target.width;
+  NOTCH_HEIGHT = target.height;
+  placeMainAtTopCenter();
+  placeEdgeActivator();
+  revealNotch().catch(() => {});
+});
 ipcMain.handle('hide-window', () => { hideNotch().catch(() => {}); });
 ipcMain.handle('minimize-window', () => mainWindow?.minimize());
 ipcMain.handle('close-window', () => { if (!isMac) hideNotch().catch(() => {}); else mainWindow?.close(); });
 
 // ---- lifecycle ----
 const gotLock = app.requestSingleInstanceLock();
-if (!gotLock) {
+if (!gotLock && !isDev) {
   app.quit();
 } else {
-  app.on('second-instance', () => { placeMainAtTopCenter(); revealNotch().catch(() => {}); });
+  if (!isDev) {
+    app.on('second-instance', () => { placeMainAtTopCenter(); revealNotch().catch(() => {}); });
+  }
 
   app.whenReady().then(() => {
     createMainWindow();

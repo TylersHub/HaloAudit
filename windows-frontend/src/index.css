@@ -28,76 +28,117 @@
 }
 
 @layer components {
-  .notch-shell {
-    @apply border border-white/10 shadow-2xl backdrop-blur-2xl;
+  .replica-notch-shell {
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: #000;
     box-shadow:
-      0 20px 60px rgba(2, 6, 23, 0.6),
-      inset 0 1px 0 rgba(255, 255, 255, 0.08),
-      inset 0 -1px 0 rgba(255, 255, 255, 0.03);
-    background-image:
-      radial-gradient(circle at top, rgba(255, 255, 255, 0.12), transparent 34%),
-      linear-gradient(180deg, rgba(15, 23, 42, 0.94), rgba(2, 6, 23, 0.98));
+      0 8px 20px rgba(0, 0, 0, 0.34),
+      0 1px 0 rgba(255, 255, 255, 0.05) inset;
   }
 
-  .notch-panel {
-    @apply border border-white/10 bg-slate-900/55 backdrop-blur-xl;
+  .replica-notch-shell::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border: 1px solid rgba(255, 255, 255, 0.025);
+    border-radius: inherit;
+  }
+
+  .replica-notch-shell-expanded {
+    clip-path: inset(0 round 18px 18px 15px 15px);
+  }
+
+  .replica-notch-shell-compact {
+    clip-path: inset(0 round 16px);
+  }
+
+  .replica-notch-bridge {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 128px;
+    height: 22px;
+    transform: translateX(-50%);
+    background: #000;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.04),
-      0 12px 32px rgba(15, 23, 42, 0.28);
+      -13px 0 0 0 #000,
+      13px 0 0 0 #000;
   }
 
-  .notch-noise {
-    background-image:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 42%),
-      radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.08), transparent 28%),
-      radial-gradient(circle at 80% 0%, rgba(52, 211, 153, 0.08), transparent 24%);
-  }
-
-  .notch-camera-cluster {
-    @apply flex items-center gap-1.5 rounded-full px-2.5 py-1.5;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(0, 0, 0, 0.45);
-    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.05);
-  }
-
-  .notch-camera-dot {
-    @apply block h-2.5 w-2.5 rounded-full bg-slate-700;
+  .replica-notch-lens {
+    display: block;
+    width: 7px;
+    height: 7px;
+    border-radius: 9999px;
+    background: #2b2b2b;
     box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08);
   }
 
-  .notch-camera-dot-primary {
+  .replica-notch-lens-primary {
     background:
-      radial-gradient(circle at 35% 35%, rgba(125, 211, 252, 0.8), rgba(37, 99, 235, 0.1) 40%),
-      #0f172a;
-    box-shadow:
-      0 0 10px rgba(56, 189, 248, 0.2),
-      inset 0 1px 1px rgba(255, 255, 255, 0.08);
+      radial-gradient(circle at 35% 35%, rgba(147, 197, 253, 0.75), rgba(29, 78, 216, 0.08) 42%),
+      #242424;
   }
 
-  .glass-effect {
-    @apply bg-white/10 backdrop-blur-md border border-white/20;
+  .replica-notch-trigger {
+    background: transparent;
+    border: 0;
   }
-  
-  .notch-window {
-    @apply rounded-2xl shadow-2xl;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+
+  .replica-notch-stem {
+    position: absolute;
+    left: 50%;
+    bottom: -28px;
+    width: 2px;
+    height: 28px;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.86);
+    border-radius: 9999px;
+    pointer-events: none;
   }
-  
+
+  .replica-audit-action {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.045);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  }
+
+  .replica-audit-action-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 25px;
+    height: 25px;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .replica-audit-dropzone {
+    border-width: 2px;
+    border-style: dashed;
+    border-color: rgba(255, 255, 255, 0.11);
+    border-radius: 13px;
+    background: transparent;
+    box-shadow: none;
+  }
+
   .upload-zone {
-    @apply flex w-full max-w-[480px] cursor-pointer flex-col items-center justify-center rounded-[24px] border border-dashed border-white/15 px-8 py-6 text-center transition-all duration-200;
-    background:
-      linear-gradient(180deg, rgba(15, 23, 42, 0.54), rgba(2, 6, 23, 0.68)),
-      rgba(15, 23, 42, 0.35);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    @apply flex w-full cursor-pointer flex-col items-center justify-center text-center transition-all duration-200;
   }
   
   .upload-zone.drag-over {
-    @apply border-cyan-300/60;
-    background:
-      radial-gradient(circle at top, rgba(34, 211, 238, 0.18), transparent 42%),
-      linear-gradient(180deg, rgba(8, 47, 73, 0.78), rgba(2, 6, 23, 0.82));
+    border-color: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.03);
   }
   
   .progress-ring {
