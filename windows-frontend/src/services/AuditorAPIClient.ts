@@ -2,7 +2,7 @@ import { UploadResponse, RunStatus, Finding, AuditorError } from '../types/Uploa
 
 export class AuditorAPIClient {
   private static instance: AuditorAPIClient;
-  private readonly baseURL = 'https://auditor-edge.evanhaque1.workers.dev';
+  private readonly baseURL = 'https://auditor-edge.18tyler-rosa1.workers.dev';
   private readonly jwtSecret = 'cyZwlCFe8WIwvip6Lf5SMcb1eIYh7nqz9WUryMa5CtM';
 
   private constructor() {}

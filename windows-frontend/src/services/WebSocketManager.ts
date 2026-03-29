@@ -56,7 +56,7 @@ export class WebSocketManager {
   private connectWebSocket(): void {
     if (!this.runId) return;
 
-    const wsUrl = `wss://auditor-edge.evanhaque1.workers.dev/ws/run/${this.runId}`;
+    const wsUrl = `wss://auditor-edge.18tyler-rosa1.workers.dev/ws/run/${this.runId}`;
     
     try {
       this.webSocket = new WebSocket(wsUrl);

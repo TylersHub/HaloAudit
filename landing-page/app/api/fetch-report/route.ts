@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get the backend URL from environment or use default
-    const backendUrl = process.env.BACKEND_URL || 'https://auditor-edge.evanhaque1.workers.dev'
+    const backendUrl = process.env.BACKEND_URL || 'https://auditor-edge.18tyler-rosa1.workers.dev'
     
     // Fetch the report from the backend
     const reportResponse = await fetch(`${backendUrl}/runs/${runId}/report-content`, {

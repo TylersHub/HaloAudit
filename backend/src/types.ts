@@ -26,6 +26,7 @@ export interface Env {
   // Secrets
   TURNSTILE_SECRET: string;
   JWT_SECRET: string;
+  GOOGLE_API_KEY?: string;  // Optional, for direct Gemini API calls
 }
 
 export { RunRoom };

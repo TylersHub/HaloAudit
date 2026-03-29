@@ -12,7 +12,7 @@ bucket_name = "auditor"
 [[d1_databases]]
 binding = "DB"
 database_name = "auditor"
-database_id = "deb22e02-1ce1-448f-b88f-6bea53de193f"
+database_id = "e04bb296-fd9a-4f9c-946e-a83d37fe0c44"
 
 # Vectorize index for embeddings
 [[vectorize]]
