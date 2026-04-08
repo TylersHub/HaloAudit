@@ -28,6 +28,10 @@
 }
 
 @layer components {
+  .replica-notch-wrapper {
+    position: relative;
+  }
+
   .replica-notch-shell {
     position: relative;
     border: 1px solid rgba(255, 255, 255, 0.05);
@@ -98,7 +102,7 @@
   .replica-notch-stem {
     position: absolute;
     left: 50%;
-    bottom: -28px;
+    top: 95px;
     width: 2px;
     height: 28px;
     transform: translateX(-50%);

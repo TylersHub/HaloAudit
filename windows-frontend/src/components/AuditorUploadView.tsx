@@ -104,6 +104,51 @@ export const AuditorUploadView: React.FC = () => {
     }
   };
 
+  const renderCompactProgress = ({
+    icon,
+    title,
+    detail,
+    value,
+    trailingLabel,
+  }: {
+    icon: React.ReactNode;
+    title: string;
+    detail: string;
+    value: number;
+    trailingLabel: string;
+  }) => {
+    const progressWidth = Math.min(100, Math.max(value, 6));
+
+    return (
+      <div className="flex h-full items-center gap-3 px-4 py-2">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border border-white/8 bg-white/[0.04]">
+          {icon}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-3">
+            <p className="truncate text-sm font-semibold text-zinc-100">{title}</p>
+            <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+              {trailingLabel}
+            </span>
+          </div>
+          <p className="mt-0.5 truncate text-[11px] text-zinc-500">{detail}</p>
+          <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full bg-white/85 transition-all duration-300"
+              style={{ width: `${progressWidth}%` }}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const processingTitle = currentPhase?.trim() || "Queued";
+  const processingDetail =
+    statusMessage === "Processing started..."
+      ? "Waiting for the worker to pick up your document."
+      : statusMessage;
+
   const renderContent = () => {
     switch (uploadState) {
       case UploadState.IDLE:
@@ -142,88 +187,38 @@ export const AuditorUploadView: React.FC = () => {
         );
 
       case UploadState.UPLOADING:
-        return (
-          <div className="flex h-full flex-col items-center justify-center space-y-5 px-8 py-6">
-            <div className="text-center">
-              <h3 className="text-lg font-medium text-zinc-100">
-                {statusMessage}
-              </h3>
-              <div className="mt-5 h-1.5 w-56 rounded-full bg-white/15">
-                <div
-                  className="h-1.5 rounded-full bg-white transition-all duration-300"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <p className="mt-3 text-xs text-zinc-500">
-                {Math.round(progress)}%
-              </p>
-            </div>
-          </div>
-        );
+        return renderCompactProgress({
+          icon: <Upload className="h-4 w-4 animate-pulse text-zinc-200" />,
+          title: "Uploading document",
+          detail: statusMessage,
+          value: progress,
+          trailingLabel: `${Math.round(progress)}%`,
+        });
 
       case UploadState.PROCESSING:
-        return (
-          <div className="flex h-full flex-col items-center justify-center space-y-5 px-8 py-6">
-            <div className="relative">
-              <svg className="progress-ring h-24 w-24" viewBox="0 0 100 100">
-                <circle
-                  className="progress-ring-circle stroke-zinc-700"
-                  strokeWidth="8"
-                  fill="transparent"
-                  r="40"
-                  cx="50"
-                  cy="50"
-                />
-                <circle
-                  className="progress-ring-circle stroke-white"
-                  strokeWidth="8"
-                  fill="transparent"
-                  r="40"
-                  cx="50"
-                  cy="50"
-                  strokeDasharray={`${2 * Math.PI * 40}`}
-                  strokeDashoffset={`${
-                    2 * Math.PI * 40 * (1 - progress / 100)
-                  }`}
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-base font-semibold text-zinc-100">
-                  {Math.round(progress)}%
-                </span>
-              </div>
-            </div>
-            <div className="text-center">
-              <h3 className="text-lg font-medium text-zinc-100">
-                {currentPhase || "Processing"}
-              </h3>
-              <p className="mt-1 text-sm text-zinc-500">{statusMessage}</p>
-              <div className="mt-3 flex items-center justify-center gap-2">
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-300" />
-                <span className="text-xs text-zinc-400">
-                  Live
-                </span>
-              </div>
-            </div>
-          </div>
-        );
+        return renderCompactProgress({
+          icon: <Loader2 className="h-4 w-4 animate-spin text-zinc-200" />,
+          title: processingTitle,
+          detail: processingDetail,
+          value: progress,
+          trailingLabel: progress > 0 ? `${Math.round(progress)}%` : "Live",
+        });
 
       case UploadState.COMPLETED:
         return (
-          <div className="flex h-full flex-col items-center justify-center space-y-4 px-8 py-6">
-            <CheckCircle className="h-12 w-12 text-green-400" />
-            <div className="text-center">
-              <h3 className="text-xl font-semibold text-zinc-100">
-                Audit Complete!
-              </h3>
-              <p className="mt-2 text-sm text-zinc-400">{statusMessage}</p>
-              {viewModel.currentRun && (
-                <p className="mt-2 text-xs text-zinc-600">
-                  Run ID: {viewModel.currentRun.runId}
-                </p>
-              )}
+          <div className="flex h-full items-center gap-3 px-4 py-2">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border border-emerald-400/20 bg-emerald-400/10">
+              <CheckCircle className="h-4 w-4 text-emerald-300" />
             </div>
-            <div className="mt-2 flex items-center justify-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-zinc-100">
+                Audit complete
+              </p>
+              <p className="mt-0.5 truncate text-[11px] text-zinc-500">
+                {statusMessage}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
               <button
                 onClick={() => {
                   void viewModel.openReport().catch((error) => {
@@ -231,19 +226,19 @@ export const AuditorUploadView: React.FC = () => {
                   });
                 }}
                 disabled={!reportReady}
-                className="flex items-center gap-2 rounded-md bg-white px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex items-center gap-1.5 rounded-md bg-white px-3 py-2 text-[11px] font-medium text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                <ExternalLink className="h-4 w-4" />
-                Show Report
+                <ExternalLink className="h-3.5 w-3.5" />
+                Report
               </button>
               <button
                 onClick={() => {
                   setReportReady(false);
                   viewModel.reset();
                 }}
-                className="rounded-md border border-white/10 bg-transparent px-4 py-2 text-sm font-medium text-zinc-200 transition-colors hover:bg-white/5"
+                className="rounded-md border border-white/10 bg-transparent px-3 py-2 text-[11px] font-medium text-zinc-200 transition-colors hover:bg-white/5"
               >
-                Upload Another
+                New
               </button>
             </div>
           </div>
@@ -251,18 +246,24 @@ export const AuditorUploadView: React.FC = () => {
 
       case UploadState.FAILED:
         return (
-          <div className="flex h-full flex-col items-center justify-center space-y-4 px-8 py-6">
-            <AlertCircle className="h-12 w-12 text-orange-400" />
-            <div className="text-center">
-              <h3 className="text-xl font-semibold text-zinc-100">
-                Upload Failed
-              </h3>
-              <p className="mt-1 text-sm text-zinc-500">{statusMessage}</p>
+          <div className="flex h-full items-center gap-3 px-4 py-2">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border border-orange-400/20 bg-orange-400/10">
+              <AlertCircle className="h-4 w-4 text-orange-300" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-semibold text-zinc-100">
+                Upload failed
+              </p>
+              <p className="mt-0.5 truncate text-[11px] text-zinc-500">
+                {statusMessage}
+              </p>
+            </div>
+            <div className="shrink-0">
               <button
                 onClick={() => viewModel.reset()}
-                className="mt-4 rounded-md bg-white px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-zinc-200"
+                className="rounded-md bg-white px-3 py-2 text-[11px] font-medium text-black transition-colors hover:bg-zinc-200"
               >
-                Try Again
+                Retry
               </button>
             </div>
           </div>

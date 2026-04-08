@@ -32,8 +32,8 @@ const topCenterFor = (width: number, height: number) => {
 };
 
 // Cache the notch size once and never read width/height during animation
-const COMPACT_NOTCH = { width: 448, height: 96 };
-const EXPANDED_NOTCH = { width: 448, height: 96 };
+const COMPACT_NOTCH = { width: 448, height: 124 };
+const EXPANDED_NOTCH = { width: 448, height: 124 };
 
 let NOTCH_WIDTH = EXPANDED_NOTCH.width;
 let NOTCH_HEIGHT = EXPANDED_NOTCH.height;
@@ -199,7 +199,7 @@ function createMainWindow() {
 
   mainWindow = new BrowserWindow({
     width: NOTCH_WIDTH, height: NOTCH_HEIGHT,
-    minWidth: 448, maxWidth: 448, minHeight: 96, maxHeight: 96,
+    minWidth: 448, maxWidth: 448, minHeight: 124, maxHeight: 124,
     useContentSize: true,
     frame: false, transparent: true, resizable: false, alwaysOnTop: true,
     skipTaskbar: true, hasShadow: false, focusable: true, backgroundColor: '#00000000',
