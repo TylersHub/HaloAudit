@@ -5,7 +5,52 @@
 import { Context } from 'hono';
 import { Env } from '../types.js';
 import { aiGatewaySchema } from '../lib/schema.js';
-import { ValidationError, ServerError, AuthError } from '../lib/errors.js';
+import { AppError, ValidationError, ServerError, AuthError } from '../lib/errors.js';
+
+function normalizeGeminiModel(model: string | undefined, fallback: string): string {
+  const selected = (model || fallback).trim();
+  return selected.startsWith('models/') ? selected : `models/${selected}`;
+}
+
+async function parseGoogleError(response: Response): Promise<never> {
+  const rawText = await response.text();
+  console.error('Google AI Studio error:', rawText);
+
+  let retryAfter: number | undefined;
+  let message = 'Google AI Studio request failed';
+
+  try {
+    const parsed = JSON.parse(rawText) as {
+      error?: {
+        code?: number;
+        message?: string;
+        details?: Array<{ '@type'?: string; retryDelay?: string }>;
+      };
+    };
+
+    if (parsed.error?.message) {
+      message = parsed.error.message;
+    }
+
+    const retryInfo = parsed.error?.details?.find(
+      (detail) => detail['@type'] === 'type.googleapis.com/google.rpc.RetryInfo'
+    );
+    if (retryInfo?.retryDelay) {
+      const seconds = Number.parseInt(retryInfo.retryDelay, 10);
+      if (Number.isFinite(seconds)) {
+        retryAfter = seconds;
+      }
+    }
+  } catch {
+    // Fall back to the raw error text already logged above.
+  }
+
+  if (response.status === 429) {
+    throw new AppError(429, 'GOOGLE_QUOTA_EXCEEDED', message, { retryAfter });
+  }
+
+  throw new AppError(response.status || 500, 'GOOGLE_AI_ERROR', message, { retryAfter });
+}
 
 /**
  * POST /llm/gateway
@@ -34,8 +79,13 @@ export async function llmGateway(c: Context<{ Bindings: Env }>): Promise<Respons
         console.error('LLM Gateway: Google API key is not configured');
         throw new ServerError('Google API key not configured');
       }
-      
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+      const model = normalizeGeminiModel(
+        typeof body.model === 'string' ? body.model : undefined,
+        'gemini-2.5-flash'
+      );
+      const { model: _ignoredModel, ...payload } = body;
+      const url = `https://generativelanguage.googleapis.com/v1beta/${model}:generateContent?key=${apiKey}`;
       console.log('LLM Gateway: Calling URL:', url);
       
       const response = await fetch(url, {
@@ -43,15 +93,13 @@ export async function llmGateway(c: Context<{ Bindings: Env }>): Promise<Respons
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify(payload),
       });
 
       console.log('LLM Gateway: Response status:', response.status);
       
       if (!response.ok) {
-        const error = await response.text();
-        console.error('Google AI Studio error:', error);
-        throw new ServerError('Google AI Studio request failed');
+        await parseGoogleError(response);
       }
 
       const result = await response.json();
@@ -59,6 +107,9 @@ export async function llmGateway(c: Context<{ Bindings: Env }>): Promise<Respons
       return c.json(result);
     } catch (error) {
       console.error('LLM gateway failed:', error);
+      if (error instanceof AppError) {
+        throw error;
+      }
       throw new ServerError('Failed to process LLM request');
     }
   }
@@ -128,10 +179,13 @@ export async function llmEmbed(c: Context<{ Bindings: Env }>): Promise<Response>
       }
       
       // Convert requests to Google AI Studio format
-      const googleRequests = body.requests.map(req => ({
-        model: req.model || "models/text-embedding-004",
-        content: req.content
-      }));
+      const googleRequests = body.requests.map(
+        (req: { model?: string; content: unknown; outputDimensionality?: number }) => ({
+          model: normalizeGeminiModel(req.model, 'gemini-embedding-001'),
+          content: req.content,
+          outputDimensionality: req.outputDimensionality ?? 768,
+        })
+      );
       
       const payload = {
         requests: googleRequests
@@ -139,7 +193,8 @@ export async function llmEmbed(c: Context<{ Bindings: Env }>): Promise<Response>
       
       console.log('Embedding: Calling Google AI Studio with payload:', JSON.stringify(payload));
       
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents?key=${apiKey}`, {
+      const embeddingModel = googleRequests[0]?.model || 'models/gemini-embedding-001';
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/${embeddingModel}:batchEmbedContents?key=${apiKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -148,15 +203,16 @@ export async function llmEmbed(c: Context<{ Bindings: Env }>): Promise<Response>
       });
 
       if (!response.ok) {
-        const error = await response.text();
-        console.error('Google AI Studio embedding error:', error);
-        throw new ServerError('Google AI Studio embedding request failed');
+        await parseGoogleError(response);
       }
 
       const result = await response.json();
       return c.json(result);
     } catch (error) {
       console.error('Embedding failed:', error);
+      if (error instanceof AppError) {
+        throw error;
+      }
       throw new ServerError('Failed to generate embeddings');
     }
   }
@@ -174,7 +230,7 @@ export async function llmEmbed(c: Context<{ Bindings: Env }>): Promise<Response>
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'text-embedding-004', // Google's embedding model
+        model: 'gemini-embedding-001', // Google's embedding model
         input: body.texts,
       }),
     });

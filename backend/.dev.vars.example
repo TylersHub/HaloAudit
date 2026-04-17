@@ -3,4 +3,5 @@
 
 TURNSTILE_SECRET=your-turnstile-secret-here
 JWT_SECRET=yXkXYAXvv0oYV/7vtQOKO6ye+Htj7BMB7AIZ4onmg9U=
+GOOGLE_API_KEY=your-google-api-key-here
 

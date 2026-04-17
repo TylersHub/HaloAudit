@@ -184,8 +184,8 @@ POST /d1/query           # Database operations
 
 ### Gemini AI Gateway
 ```
-POST /.../models/gemini-2.0-flash:generateContent
-POST /.../models/text-embedding-004:batchEmbedContents
+POST /.../models/gemini-2.5-flash:generateContent
+POST /.../models/gemini-embedding-001:batchEmbedContents
 ```
 
 ## 🎓 Key Innovations

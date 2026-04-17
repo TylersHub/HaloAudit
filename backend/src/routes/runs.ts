@@ -14,6 +14,9 @@ import { generateJobId, nowSeconds } from '../lib/jobs.js';
  */
 export async function enqueueRun(c: Context<{ Bindings: Env }>): Promise<Response> {
   const runId = c.req.param('runId');
+  if (!runId) {
+    throw new ValidationError('runId is required');
+  }
   const body = await c.req.json();
 
   // Validate input
@@ -75,6 +78,9 @@ export async function enqueueRun(c: Context<{ Bindings: Env }>): Promise<Respons
  */
 export async function getRunStatus(c: Context<{ Bindings: Env }>): Promise<Response> {
   const runId = c.req.param('runId');
+  if (!runId) {
+    throw new ValidationError('runId is required');
+  }
 
   // Verify run exists in D1
   const run = await c.env.DB.prepare(
@@ -110,6 +116,9 @@ export async function getRunStatus(c: Context<{ Bindings: Env }>): Promise<Respo
  */
 export async function getReportUrl(c: Context<{ Bindings: Env }>): Promise<Response> {
   const runId = c.req.param('runId');
+  if (!runId) {
+    throw new ValidationError('runId is required');
+  }
 
   // Get real-time state from DO to get the report key
   const doId = c.env.RUNROOM.idFromName(runId);
@@ -137,6 +146,9 @@ export async function getReportUrl(c: Context<{ Bindings: Env }>): Promise<Respo
  */
 export async function getReportContent(c: Context<{ Bindings: Env }>): Promise<Response> {
   const runId = c.req.param('runId');
+  if (!runId) {
+    throw new ValidationError('runId is required');
+  }
 
   // Get real-time state from DO to get the report key
   const doId = c.env.RUNROOM.idFromName(runId);

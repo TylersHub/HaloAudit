@@ -85,11 +85,11 @@ def extract_text_with_gemini(
     Returns:
         Updated state with extracted text
     """
-    logger.info(f"[{state.run_id}] Starting text extraction with Gemini")
-    edge_client.emit_event(state.run_id, "info", "Extracting text with Gemini AI")
-
     if state.error:
         return state
+
+    logger.info(f"[{state.run_id}] Starting text extraction with Gemini")
+    edge_client.emit_event(state.run_id, "info", "Extracting text with Gemini AI")
 
     try:
         if not state.file_bytes:
@@ -128,11 +128,11 @@ def chunk(state: RunState, edge_client: EdgeClient) -> RunState:
     Returns:
         Updated state with chunks
     """
-    logger.info(f"[{state.run_id}] Starting chunking")
-    edge_client.emit_event(state.run_id, "info", "Chunking text")
-
     if state.error or not state.raw_text:
         return state
+
+    logger.info(f"[{state.run_id}] Starting chunking")
+    edge_client.emit_event(state.run_id, "info", "Chunking text")
 
     try:
         # Simple chunking by length (roughly 1000-2000 chars per chunk)
@@ -184,11 +184,11 @@ def embed(state: RunState, gemini_client: GeminiClient, edge_client: EdgeClient)
     Returns:
         Updated state with embeddings
     """
-    logger.info(f"[{state.run_id}] Starting embedding")
-    edge_client.emit_event(state.run_id, "info", "Generating embeddings")
-
     if state.error or not state.chunks:
         return state
+
+    logger.info(f"[{state.run_id}] Starting embedding")
+    edge_client.emit_event(state.run_id, "info", "Generating embeddings")
 
     try:
         # Generate embeddings
@@ -224,11 +224,11 @@ def index(state: RunState, edge_client: EdgeClient) -> RunState:
     Returns:
         Updated state
     """
-    logger.info(f"[{state.run_id}] Starting indexing")
-    edge_client.emit_event(state.run_id, "info", "Indexing vectors")
-
     if state.error or not state.embeddings:
         return state
+
+    logger.info(f"[{state.run_id}] Starting indexing")
+    edge_client.emit_event(state.run_id, "info", "Indexing vectors")
 
     try:
         # Prepare metadata
@@ -275,11 +275,11 @@ def checks(state: RunState, edge_client: EdgeClient) -> RunState:
     Returns:
         Updated state with findings
     """
-    logger.info(f"[{state.run_id}] Running deterministic checks")
-    edge_client.emit_event(state.run_id, "info", "Running audit checks")
-
     if state.error:
         return state
+
+    logger.info(f"[{state.run_id}] Running deterministic checks")
+    edge_client.emit_event(state.run_id, "info", "Running audit checks")
 
     try:
         # Extract transactions from text (simple regex-based extraction)
@@ -320,11 +320,11 @@ def analyze(
     Returns:
         Updated state with summary
     """
-    logger.info(f"[{state.run_id}] Starting AI analysis")
-    edge_client.emit_event(state.run_id, "info", "Analyzing with Gemini AI")
-
     if state.error:
         return state
+
+    logger.info(f"[{state.run_id}] Starting AI analysis")
+    edge_client.emit_event(state.run_id, "info", "Analyzing with Gemini AI")
 
     try:
         # Build audit context for professional report generation
@@ -427,11 +427,11 @@ def report(state: RunState, r2_client: R2Client, edge_client: EdgeClient) -> Run
     Returns:
         Updated state with report key
     """
-    logger.info(f"[{state.run_id}] Generating report")
-    edge_client.emit_event(state.run_id, "info", "Generating report")
-
     if state.error:
         return state
+
+    logger.info(f"[{state.run_id}] Generating report")
+    edge_client.emit_event(state.run_id, "info", "Generating report")
 
     try:
         # Generate Markdown report
@@ -465,7 +465,11 @@ def persist(state: RunState, edge_client: EdgeClient) -> RunState:
         Final state
     """
     logger.info(f"[{state.run_id}] Persisting results")
-    edge_client.emit_event(state.run_id, "info", "Saving results to database")
+    edge_client.emit_event(
+        state.run_id,
+        "info",
+        "Saving results to database" if not state.error else "Saving failure state to database",
+    )
 
     try:
         # Insert each finding
@@ -488,12 +492,13 @@ def persist(state: RunState, edge_client: EdgeClient) -> RunState:
         # Emit final event with summary
         edge_client.emit_event(
             state.run_id,
-            "info",
-            "Audit complete",
+            "info" if not state.error else "error",
+            "Audit complete" if not state.error else f"Audit failed: {state.error}",
             {
                 "summary": state.summary,
                 "report_key": state.report_r2_key,
                 "findings_count": len(state.findings),
+                "error": state.error,
             },
         )
 

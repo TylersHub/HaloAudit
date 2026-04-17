@@ -5,9 +5,8 @@
 import { Context } from 'hono';
 import { Env } from '../types.js';
 import { createUploadSchema } from '../lib/schema.js';
-import { createSignedUploadUrl, generateObjectKey } from '../lib/r2.js';
-import { ValidationError } from '../lib/errors.js';
-import { generateJobId, nowSeconds } from '../lib/jobs.js';
+import { generateObjectKey } from '../lib/r2.js';
+import { AppError, ValidationError } from '../lib/errors.js';
 
 /**
  * POST /uploads/create

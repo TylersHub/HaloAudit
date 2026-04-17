@@ -6,6 +6,7 @@ import {
   CheckCircle,
   Loader2,
   ExternalLink,
+  FileText,
   Play,
   ScanSearch,
 } from "lucide-react";
@@ -19,6 +20,7 @@ export const AuditorUploadView: React.FC = () => {
   const [progress, setProgress] = useState(viewModel.progress);
   const [currentPhase, setCurrentPhase] = useState(viewModel.currentPhase);
   const [reportReady, setReportReady] = useState(Boolean(viewModel.reportUrl));
+  const [queuedFiles, setQueuedFiles] = useState<string[]>(viewModel.queuedFiles);
 
   useEffect(() => {
     const handleStateChange = (data: any) => {
@@ -26,6 +28,9 @@ export const AuditorUploadView: React.FC = () => {
       setStatusMessage(data.message);
       if (data.progress !== undefined) {
         setProgress(data.progress);
+      }
+      if (Array.isArray(data.queuedFiles)) {
+        setQueuedFiles(data.queuedFiles);
       }
       if (data.state === UploadState.IDLE || data.state === UploadState.FAILED) {
         setReportReady(false);
@@ -104,50 +109,53 @@ export const AuditorUploadView: React.FC = () => {
     }
   };
 
-  const renderCompactProgress = ({
-    icon,
-    title,
-    detail,
-    value,
-    trailingLabel,
-  }: {
-    icon: React.ReactNode;
-    title: string;
-    detail: string;
-    value: number;
-    trailingLabel: string;
-  }) => {
-    const progressWidth = Math.min(100, Math.max(value, 6));
+  const processingTitle = currentPhase?.trim() || "Queued";
 
-    return (
-      <div className="flex h-full items-center gap-3 px-4 py-2">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] border border-white/8 bg-white/[0.04]">
-          {icon}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-3">
-            <p className="truncate text-sm font-semibold text-zinc-100">{title}</p>
-            <span className="shrink-0 text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-              {trailingLabel}
-            </span>
-          </div>
-          <p className="mt-0.5 truncate text-[11px] text-zinc-500">{detail}</p>
-          <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10">
-            <div
-              className="h-full rounded-full bg-white/85 transition-all duration-300"
-              style={{ width: `${progressWidth}%` }}
-            />
-          </div>
+  const queueHeadline =
+    uploadState === UploadState.UPLOADING
+      ? progress < 45
+        ? "Uploading..."
+        : "Queuing..."
+      : processingTitle.toLowerCase() === "queued"
+        ? "Queued..."
+        : "Processing...";
+
+  const queueDetail =
+    uploadState === UploadState.UPLOADING
+      ? `${Math.round(progress)}%`
+      : progress > 0
+        ? `${Math.round(progress)}%`
+        : "Live";
+
+  const displayQueuedFiles =
+    queuedFiles.length > 0 ? queuedFiles : ["Queued document"];
+
+  const renderQueuedFileChip = (fileName: string, index: number) => (
+    <div key={`${fileName}-${index}`} className="replica-queue-chip">
+      <div className="replica-queue-chip-icon">
+        <FileText className="h-4 w-4 text-zinc-300" />
+      </div>
+      <p className="replica-queue-chip-title">{fileName}</p>
+    </div>
+  );
+
+  const renderProcessingQueue = (spinnerIcon: React.ReactNode) => (
+    <div className="flex h-full gap-2 px-4 pb-3 pt-1">
+      <div className="replica-audit-action flex w-[106px] shrink-0 flex-col items-center justify-center rounded-[13px]">
+        <div className="replica-audit-action-icon">{spinnerIcon}</div>
+        <div className="mt-2 text-center">
+          <div className="text-[11px] font-medium text-zinc-200">{queueHeadline}</div>
+          <div className="mt-0.5 text-[10px] text-zinc-500">{queueDetail}</div>
         </div>
       </div>
-    );
-  };
 
-  const processingTitle = currentPhase?.trim() || "Queued";
-  const processingDetail =
-    statusMessage === "Processing started..."
-      ? "Waiting for the worker to pick up your document."
-      : statusMessage;
+      <div className="replica-audit-dropzone flex h-full flex-1 items-center px-4">
+        <div className="flex min-w-0 items-center gap-3 overflow-hidden">
+          {displayQueuedFiles.map(renderQueuedFileChip)}
+        </div>
+      </div>
+    </div>
+  );
 
   const renderContent = () => {
     switch (uploadState) {
@@ -187,22 +195,14 @@ export const AuditorUploadView: React.FC = () => {
         );
 
       case UploadState.UPLOADING:
-        return renderCompactProgress({
-          icon: <Upload className="h-4 w-4 animate-pulse text-zinc-200" />,
-          title: "Uploading document",
-          detail: statusMessage,
-          value: progress,
-          trailingLabel: `${Math.round(progress)}%`,
-        });
+        return renderProcessingQueue(
+          <Upload className="h-3.5 w-3.5 animate-pulse text-zinc-200" />
+        );
 
       case UploadState.PROCESSING:
-        return renderCompactProgress({
-          icon: <Loader2 className="h-4 w-4 animate-spin text-zinc-200" />,
-          title: processingTitle,
-          detail: processingDetail,
-          value: progress,
-          trailingLabel: progress > 0 ? `${Math.round(progress)}%` : "Live",
-        });
+        return renderProcessingQueue(
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-zinc-200" />
+        );
 
       case UploadState.COMPLETED:
         return (

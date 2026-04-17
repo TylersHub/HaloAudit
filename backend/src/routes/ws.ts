@@ -4,7 +4,7 @@
 
 import { Context } from 'hono';
 import { Env } from '../types.js';
-import { NotFoundError } from '../lib/errors.js';
+import { NotFoundError, ValidationError } from '../lib/errors.js';
 
 /**
  * GET /ws/run/:runId
@@ -12,6 +12,9 @@ import { NotFoundError } from '../lib/errors.js';
  */
 export async function wsRunConnection(c: Context<{ Bindings: Env }>): Promise<Response> {
   const runId = c.req.param('runId');
+  if (!runId) {
+    throw new ValidationError('runId is required');
+  }
 
   // Verify run exists
   const run = await c.env.DB.prepare(

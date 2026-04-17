@@ -5,11 +5,20 @@ from typing import Any
 
 import httpx
 import orjson
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from .config import Config
 
 logger = logging.getLogger(__name__)
+
+
+def should_retry_llm(exc: BaseException) -> bool:
+    """Retry transient upstream failures, but not quota/auth/client errors."""
+    if isinstance(exc, httpx.HTTPStatusError):
+        status = exc.response.status_code
+        if status in {400, 401, 403, 404, 409, 422, 429}:
+            return False
+    return True
 
 
 class EdgeClient:
@@ -226,6 +235,7 @@ class EdgeClient:
             return False
 
     @retry(
+        retry=retry_if_exception(should_retry_llm),
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=2, min=4, max=30),
     )
@@ -233,6 +243,7 @@ class EdgeClient:
         self,
         contents: list[dict[str, Any]],
         generation_config: dict[str, Any] | None = None,
+        model: str | None = None,
     ) -> dict:
         """
         Call Gemini via AI Gateway through edge proxy.
@@ -247,6 +258,8 @@ class EdgeClient:
         payload = {"contents": contents}
         if generation_config:
             payload["generationConfig"] = generation_config
+        if model:
+            payload["model"] = model
 
         logger.debug("Calling Gemini via AI Gateway")
 
@@ -262,6 +275,7 @@ class EdgeClient:
         return data
 
     @retry(
+        retry=retry_if_exception(should_retry_llm),
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=2, min=4, max=30),
     )

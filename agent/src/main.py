@@ -101,10 +101,12 @@ def process_job(runner: PipelineRunner, job) -> bool:
 
         # Run the pipeline
         final_state = runner.pipeline(state)
+        if isinstance(final_state, dict):
+            final_state = RunState.model_validate(final_state)
 
         # Check if successful
-        if final_state.get('error'):
-            logger.error(f"Pipeline failed for {job.run_id}: {final_state.get('error')}")
+        if final_state.error:
+            logger.error(f"Pipeline failed for {job.run_id}: {final_state.error}")
             return False
 
         logger.info(f"Pipeline completed successfully for job {job.id}")

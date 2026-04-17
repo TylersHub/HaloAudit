@@ -60,7 +60,11 @@ class GeminiClient:
         logger.info(f"Extracting text from {len(file_bytes)} bytes ({mime_type})")
 
         # Call Gemini via edge proxy
-        data = self.edge_client.llm_gateway(contents, generation_config)
+        data = self.edge_client.llm_gateway(
+            contents,
+            generation_config,
+            model=self.config.gemini_chat_model,
+        )
 
         # Extract text from response
         try:
@@ -102,7 +106,13 @@ class GeminiClient:
         # Build requests for each text
         requests = []
         for text in texts:
-            requests.append({"model": "models/text-embedding-004", "content": {"parts": [{"text": text}]}})
+            requests.append(
+                {
+                    "model": self.config.gemini_embed_model,
+                    "content": {"parts": [{"text": text}]},
+                    "outputDimensionality": self.config.gemini_embed_dimensions,
+                }
+            )
 
         logger.info(f"Embedding {len(texts)} texts")
 
@@ -151,7 +161,11 @@ class GeminiClient:
         logger.info(f"Chat request with {len(prompt)} char prompt")
 
         # Call via edge proxy
-        data = self.edge_client.llm_gateway(contents, generation_config)
+        data = self.edge_client.llm_gateway(
+            contents,
+            generation_config,
+            model=model or self.config.gemini_chat_model,
+        )
 
         # Extract text from response
         try:

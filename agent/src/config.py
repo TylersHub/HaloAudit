@@ -24,8 +24,9 @@ class Config(BaseSettings):
     r2_bucket: str = Field(..., alias="R2_BUCKET")
 
     # Gemini Models
-    gemini_chat_model: str = Field(default="gemini-2.0-flash", alias="GEMINI_CHAT_MODEL")
-    gemini_embed_model: str = Field(default="text-embedding-004", alias="GEMINI_EMBED_MODEL")
+    gemini_chat_model: str = Field(default="gemini-2.5-flash", alias="GEMINI_CHAT_MODEL")
+    gemini_embed_model: str = Field(default="gemini-embedding-001", alias="GEMINI_EMBED_MODEL")
+    gemini_embed_dimensions: int = Field(default=768, alias="GEMINI_EMBED_DIMENSIONS")
 
     # Application
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")

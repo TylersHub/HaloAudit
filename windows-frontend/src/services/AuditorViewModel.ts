@@ -14,6 +14,7 @@ export class AuditorViewModel {
   public progress: number = 0;
   public currentPhase: string = '';
   public reportUrl: string | null = null;
+  public queuedFiles: string[] = [];
 
   // Event listeners
   private listeners: Map<string, Function[]> = new Map();
@@ -56,6 +57,8 @@ export class AuditorViewModel {
 
   public async uploadFile(file: File, tenantId: string = 'default_tenant'): Promise<void> {
     try {
+      this.queuedFiles = [file.name];
+
       // Validate file type
       const allowedTypes = ['application/pdf', 'text/csv'];
       if (!allowedTypes.includes(file.type)) {
@@ -136,6 +139,7 @@ export class AuditorViewModel {
     this.progress = 0;
     this.currentPhase = '';
     this.reportUrl = null;
+    this.queuedFiles = [];
     this.webSocketManager.disconnect();
     this.emit('reset');
   }
@@ -165,7 +169,12 @@ export class AuditorViewModel {
     if (progress !== undefined) {
       this.progress = progress;
     }
-    this.emit('stateChange', { state, message, progress });
+    this.emit('stateChange', {
+      state,
+      message,
+      progress,
+      queuedFiles: [...this.queuedFiles],
+    });
   }
 
   // Event system

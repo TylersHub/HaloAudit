@@ -136,8 +136,9 @@ R2_SECRET_ACCESS_KEY=your-r2-secret
 R2_BUCKET=auditor
 
 # Gemini Models (optional, defaults shown)
-GEMINI_CHAT_MODEL=gemini-2.0-flash
-GEMINI_EMBED_MODEL=text-embedding-004
+GEMINI_CHAT_MODEL=gemini-2.5-flash
+GEMINI_EMBED_MODEL=gemini-embedding-001
+GEMINI_EMBED_DIMENSIONS=768
 
 # Application Settings
 BATCH_SIZE=10
@@ -352,13 +353,13 @@ Supports:
 
 ### Embeddings
 
-Uses `text-embedding-004` model:
+Uses `gemini-embedding-001` model:
 
 ```python
-POST /models/text-embedding-004:batchEmbedContents
+POST /models/gemini-embedding-001:batchEmbedContents
 ```
 
-Returns 768-dimensional vectors for semantic search.
+Returns 768-dimensional vectors for semantic search when `GEMINI_EMBED_DIMENSIONS=768`.
 
 ## Environment Variables
 
@@ -372,8 +373,9 @@ Returns 768-dimensional vectors for semantic search.
 | `R2_ACCESS_KEY_ID` | R2 access key | Yes |
 | `R2_SECRET_ACCESS_KEY` | R2 secret key | Yes |
 | `R2_BUCKET` | R2 bucket name | Yes |
-| `GEMINI_CHAT_MODEL` | Gemini chat model | No (default: gemini-2.0-flash) |
-| `GEMINI_EMBED_MODEL` | Gemini embedding model | No (default: text-embedding-004) |
+| `GEMINI_CHAT_MODEL` | Gemini chat model | No (default: gemini-2.5-flash) |
+| `GEMINI_EMBED_MODEL` | Gemini embedding model | No (default: gemini-embedding-001) |
+| `GEMINI_EMBED_DIMENSIONS` | Gemini embedding vector size | No (default: 768) |
 | `LOG_LEVEL` | Logging level | No (default: INFO) |
 | `HEALTH_PORT` | Health server port | No (default: 8080) |
 | `BATCH_SIZE` | Jobs per pull | No (default: 10) |

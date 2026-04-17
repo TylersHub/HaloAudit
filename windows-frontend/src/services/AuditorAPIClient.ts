@@ -3,7 +3,7 @@ import { UploadResponse, RunStatus, AuditorError, ReportUrlResponse } from '../t
 export class AuditorAPIClient {
   private static instance: AuditorAPIClient;
   private readonly baseURL =
-    import.meta.env.VITE_AUDITOR_BASE_URL ?? 'https://auditor-edge.evanhaque1.workers.dev';
+    import.meta.env.VITE_AUDITOR_BASE_URL ?? 'https://auditor-edge.18tyler-rosa1.workers.dev';
 
   private constructor() {}
 

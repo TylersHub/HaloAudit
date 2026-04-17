@@ -60,7 +60,7 @@ export class WebSocketManager {
     if (!this.runId) return;
 
     const baseUrl =
-      import.meta.env.VITE_AUDITOR_BASE_URL ?? 'https://auditor-edge.evanhaque1.workers.dev';
+      import.meta.env.VITE_AUDITOR_BASE_URL ?? 'https://auditor-edge.18tyler-rosa1.workers.dev';
     const wsUrl = `${baseUrl.replace(/^http/, 'ws')}/ws/run/${this.runId}`;
     
     try {

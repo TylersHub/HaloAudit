@@ -37,6 +37,38 @@ const QUERIES = {
   },
 };
 
+function mapEventToProgress(message: string, level: string): { phase: string; percent: number; message: string } | null {
+  if (level === 'error') {
+    return {
+      phase: 'error',
+      percent: 100,
+      message,
+    };
+  }
+
+  const progressMap: Record<string, { phase: string; percent: number }> = {
+    'Downloading file from R2': { phase: 'ingest', percent: 15 },
+    'Extracting text with Gemini AI': { phase: 'extract', percent: 30 },
+    'Chunking text': { phase: 'chunk', percent: 45 },
+    'Generating embeddings': { phase: 'embed', percent: 60 },
+    'Indexing vectors': { phase: 'index', percent: 72 },
+    'Running audit checks': { phase: 'checks', percent: 82 },
+    'Analyzing with Gemini AI': { phase: 'analyze', percent: 90 },
+    'Generating report': { phase: 'report', percent: 96 },
+    'Saving results to database': { phase: 'persist', percent: 98 },
+  };
+
+  const mapped = progressMap[message];
+  if (!mapped) {
+    return null;
+  }
+
+  return {
+    ...mapped,
+    message,
+  };
+}
+
 /**
  * POST /d1/query
  * Execute whitelisted parameterized query
@@ -89,12 +121,19 @@ export async function d1Query(c: Context<{ Bindings: Env }>): Promise<Response> 
         // Parse the data field to check for report_key
         try {
           const eventData = dataJson ? JSON.parse(dataJson as string) : {};
+          const doId = c.env.RUNROOM.idFromName(runId as string);
+          const doStub = c.env.RUNROOM.get(doId);
+
+          const progressUpdate = mapEventToProgress(message as string, level as string);
+          if (progressUpdate) {
+            await doStub.fetch('http://do/update', {
+              method: 'POST',
+              body: JSON.stringify(progressUpdate),
+            });
+          }
           
           // If this is the final event with a report_key, update the DO with the report URL
           if (eventData.report_key && message === 'Audit complete') {
-            const doId = c.env.RUNROOM.idFromName(runId as string);
-            const doStub = c.env.RUNROOM.get(doId);
-            
             await doStub.fetch('http://do/update', {
               method: 'POST',
               body: JSON.stringify({

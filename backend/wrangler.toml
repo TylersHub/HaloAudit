@@ -40,6 +40,7 @@ binding = "AI"
 # Secrets (set via: wrangler secret put <NAME>)
 # TURNSTILE_SECRET
 # JWT_SECRET
+# GOOGLE_API_KEY
 
 # Optional: Cron trigger to unlock stuck jobs every 10 minutes
 # Uncomment to enable:

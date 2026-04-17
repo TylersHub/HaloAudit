@@ -79,6 +79,8 @@ def build_graph(config: Config) -> Callable[[RunState], RunState]:
         try:
             # Run the graph
             final_state = app.invoke(state)
+            if isinstance(final_state, dict):
+                final_state = RunState.model_validate(final_state)
             logger.info(f"Pipeline completed for run {state.run_id}")
             return final_state
 

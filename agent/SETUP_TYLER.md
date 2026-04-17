@@ -104,8 +104,9 @@ R2_SECRET_ACCESS_KEY=your-r2-secret-access-key
 R2_BUCKET=auditor
 
 # Gemini Models (optional, defaults are fine)
-GEMINI_CHAT_MODEL=gemini-2.0-flash
-GEMINI_EMBED_MODEL=text-embedding-004
+GEMINI_CHAT_MODEL=gemini-2.5-flash
+GEMINI_EMBED_MODEL=gemini-embedding-001
+GEMINI_EMBED_DIMENSIONS=768
 
 # Application Settings (optional, defaults are fine)
 LOG_LEVEL=INFO
@@ -121,7 +122,7 @@ cd agent
 
 # Activate virtual environment
 # If using Poetry:
-poetry shell
+poetry shell 
 
 # Or if using venv:
 # source venv/bin/activate  # Linux/Mac
