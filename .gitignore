@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-# Operating System Files
+# Operating system files
 .DS_Store
 .AppleDouble
 .LSOverride
@@ -7,20 +6,15 @@ Icon?
 ._*
 .Spotlight-V100
 .Trashes
-
 Thumbs.db
 ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 
-*~
-
-# Visual Studio Code
+# Editor and IDE files
 .vscode/
 .history/
 *.code-workspace
-
-# IDEs
 .idea/
 .project
 .classpath
@@ -28,17 +22,73 @@ $RECYCLE.BIN/
 *.iml
 *.ipr
 *.iws
+*.sublime-workspace
+*.sublime-project
+*.swp
+*.swo
+*~
 
-# Environment
+# Environment and secrets
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.dev.vars
+wrangler.toml.local
 
+# Dependencies
 node_modules/
+**/node_modules/
 
+# JavaScript / frontend build output
 dist/
-=======
-node_modules/
->>>>>>> 1ae5d9f96dfcf300af4a3604185456e6b3c56c8b
+out/
+release/
+.next/
+.next.cache
+coverage/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+venv/
+env/
+ENV/
+.venv/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Cloudflare / local tooling
+.wrangler/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+
+.gz
+
+.next

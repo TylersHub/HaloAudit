@@ -32,6 +32,9 @@ export const AuditorUploadView: React.FC = () => {
       if (Array.isArray(data.queuedFiles)) {
         setQueuedFiles(data.queuedFiles);
       }
+      if (data.state === UploadState.COMPLETED) {
+        setReportReady(true);
+      }
       if (data.state === UploadState.IDLE || data.state === UploadState.FAILED) {
         setReportReady(false);
       }

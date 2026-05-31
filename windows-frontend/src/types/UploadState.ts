@@ -26,6 +26,9 @@ export interface RealtimeState {
   percent: number;
   lastMessage: string;
   lastUpdated?: number;
+  reportKey?: string;
+  summary?: string;
+  findingsCount?: number;
 }
 
 export interface Finding {
@@ -49,6 +52,9 @@ export interface ProgressData {
   percent: number;
   lastMessage: string;
   lastUpdated?: number;
+  reportKey?: string;
+  summary?: string;
+  findingsCount?: number;
 }
 
 export interface ReportUrlResponse {

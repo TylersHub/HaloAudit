@@ -35,6 +35,22 @@ This will:
 - Launch Electron with hot reload
 - Open the HaloAudit window
 
+### 2.5. Start the Report Frontend
+
+The original macOS flow opens the Next.js report dashboard for generated reports. Run it locally during development:
+
+```bash
+cd landing-page
+npm install
+npm run dev
+```
+
+By default, the Windows app now opens:
+
+```text
+http://localhost:3000/dashboard?runId=...
+```
+
 ### 3. Test the App
 
 - **Toggle Window**: Press `Ctrl+Shift+A`

@@ -11,6 +11,7 @@ export class WebSocketManager {
 
   // Event callbacks
   private onProgressCallback?: (data: ProgressData) => void;
+  private onDoneCallback?: (data: ProgressData) => void;
   private onConnectedCallback?: () => void;
   private onDisconnectedCallback?: () => void;
   private onErrorCallback?: (error: string) => void;
@@ -46,6 +47,10 @@ export class WebSocketManager {
 
   public onConnected(callback: () => void): void {
     this.onConnectedCallback = callback;
+  }
+
+  public onDone(callback: (data: ProgressData) => void): void {
+    this.onDoneCallback = callback;
   }
 
   public onDisconnected(callback: () => void): void {
@@ -106,12 +111,8 @@ export class WebSocketManager {
         this.onProgressCallback?.(message.data);
         break;
       case 'done':
-        this.onProgressCallback?.({
-          phase: 'Complete',
-          percent: 100,
-          lastMessage: 'Processing complete',
-          lastUpdated: Date.now(),
-        });
+        this.onProgressCallback?.(message.data);
+        this.onDoneCallback?.(message.data);
         break;
       case 'error':
         this.onErrorCallback?.(message.data.lastMessage);

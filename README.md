@@ -210,11 +210,10 @@ python -m src.main
 
 ### Report Display
 
-- **URL**: `http://localhost:3000/display?reportUrl=...`
+- **URL**: `http://localhost:3000/dashboard?runId=...`
 - **Features**:
-  - Black theme with professional styling
-  - Markdown rendering with syntax highlighting
-  - Authentication via `EDGE_API_TOKEN`
+  - Professional audit dashboard frontend
+  - Parsed report sections and findings display
   - Responsive design for audit reports
 
 ### Setup
@@ -224,6 +223,8 @@ cd landing-page
 npm install
 npm run dev
 ```
+
+The macOS and Windows apps are intended to open this Next.js dashboard frontend for generated reports.
 
 ---
 

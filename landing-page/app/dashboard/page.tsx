@@ -138,6 +138,64 @@ export default function Dashboard() {
     }
   }
 
+  const isRecord = (value: unknown): value is Record<string, unknown> => {
+    return typeof value === 'object' && value !== null && !Array.isArray(value)
+  }
+
+  const getStructuredLines = (value: unknown): string[] => {
+    if (value == null) {
+      return []
+    }
+
+    if (typeof value === 'string' || typeof value === 'number') {
+      return String(value)
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+    }
+
+    if (Array.isArray(value)) {
+      return value.flatMap((item) => getStructuredLines(item))
+    }
+
+    if (!isRecord(value)) {
+      return []
+    }
+
+    if ('title' in value || 'addressee' in value) {
+      return [value.title, value.addressee].flatMap((item) => getStructuredLines(item))
+    }
+
+    if ('heading' in value || 'statement' in value || 'content' in value || 'text' in value || 'body' in value) {
+      const body = value.statement ?? value.content ?? value.text ?? value.body
+      return [value.heading, body].flatMap((item) => getStructuredLines(item))
+    }
+
+    if ('signature' in value || 'partner_name' in value || 'city_state' in value || 'date' in value) {
+      return [value.signature, value.partner_name, value.city_state, value.date]
+        .flatMap((item) => getStructuredLines(item))
+    }
+
+    return Object.values(value).flatMap((item) => getStructuredLines(item))
+  }
+
+  const getStructuredText = (value: unknown): string => {
+    return getStructuredLines(value).join('\n')
+  }
+
+  const getStructuredBodyText = (value: unknown): string => {
+    if (isRecord(value) && ('statement' in value || 'content' in value || 'text' in value || 'body' in value)) {
+      return getStructuredText(value.statement ?? value.content ?? value.text ?? value.body)
+    }
+
+    const lines = getStructuredLines(value)
+    if (lines.length <= 1) {
+      return lines[0] ?? ''
+    }
+
+    return lines.slice(1).join('\n')
+  }
+
   const getDetectedIssues = (report: AuditReport) => {
     const issues: any[] = []
     
@@ -319,6 +377,22 @@ export default function Dashboard() {
     )
   }
 
+  const titleLines = getStructuredLines(report.executiveSummary.report.title_and_addressee)
+  const reportTitle = titleLines[0] ?? 'Audit Report'
+  const reportAddressee = titleLines.slice(1).join('\n')
+  const opinionText = getStructuredBodyText(report.executiveSummary.report.opinion)
+  const basisForOpinionText = getStructuredText(report.executiveSummary.report.basis_for_opinion)
+  const keyAuditMattersText = getStructuredText(report.executiveSummary.report.key_audit_matters)
+  const managementResponsibilitiesText = getStructuredText(
+    report.executiveSummary.report.responsibilities_of_management_and_governance
+  )
+  const auditorResponsibilitiesText = getStructuredText(report.executiveSummary.report.auditor_responsibilities)
+  const emphasisOfMatterText = getStructuredText(report.executiveSummary.report.emphasis_of_matter)
+  const otherMatterText = getStructuredText(report.executiveSummary.report.other_matter)
+  const otherInformationText = getStructuredText(report.executiveSummary.report.other_information)
+  const legalRegulatoryText = getStructuredText(report.executiveSummary.report.legal_and_regulatory)
+  const signatureLines = getStructuredLines(report.executiveSummary.report.signature_sign_off)
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
       {/* Background 3D Scene */}
@@ -446,10 +520,10 @@ export default function Dashboard() {
                   {/* Report Header */}
                   <div className="text-center mb-8">
                     <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                      {report.executiveSummary.report.title_and_addressee.split('\n')[0]}
+                      {reportTitle}
                     </h1>
                     <p className="text-gray-600">
-                      {report.executiveSummary.report.title_and_addressee.split('\n').slice(1).join('\n')}
+                      {reportAddressee}
                     </p>
                   </div>
 
@@ -458,7 +532,7 @@ export default function Dashboard() {
                     <h2 className="text-xl font-semibold text-gray-900 mb-4">Opinion</h2>
                     <div className="prose prose-gray max-w-none">
                       <p className="text-gray-700 leading-relaxed">
-                        {report.executiveSummary.report.opinion.split('\n').slice(1).join('\n')}
+                        {opinionText}
                       </p>
                     </div>
                   </div>
@@ -468,19 +542,19 @@ export default function Dashboard() {
                     <h2 className="text-xl font-semibold text-gray-900 mb-4">Basis for Opinion</h2>
                     <div className="prose prose-gray max-w-none">
                       <p className="text-gray-700 leading-relaxed">
-                        {report.executiveSummary.report.basis_for_opinion}
+                        {basisForOpinionText}
                       </p>
                     </div>
                   </div>
 
                   {/* Key Audit Matters */}
-                  {report.executiveSummary.report.key_audit_matters && 
-                   !report.executiveSummary.report.key_audit_matters.includes('not applicable') && (
+                  {keyAuditMattersText &&
+                   !keyAuditMattersText.toLowerCase().includes('not applicable') && (
                     <div className="mb-8">
                       <h2 className="text-xl font-semibold text-gray-900 mb-4">Key Audit Matters</h2>
                       <div className="prose prose-gray max-w-none">
                         <p className="text-gray-700 leading-relaxed">
-                          {report.executiveSummary.report.key_audit_matters}
+                          {keyAuditMattersText}
                         </p>
                       </div>
                     </div>
@@ -491,7 +565,7 @@ export default function Dashboard() {
                     <h2 className="text-xl font-semibold text-gray-900 mb-4">Responsibilities of Management and Governance</h2>
                     <div className="prose prose-gray max-w-none">
                       <p className="text-gray-700 leading-relaxed">
-                        {report.executiveSummary.report.responsibilities_of_management_and_governance}
+                        {managementResponsibilitiesText}
                       </p>
                     </div>
                   </div>
@@ -501,54 +575,54 @@ export default function Dashboard() {
                     <h2 className="text-xl font-semibold text-gray-900 mb-4">Auditor's Responsibilities</h2>
                     <div className="prose prose-gray max-w-none">
                       <p className="text-gray-700 leading-relaxed">
-                        {report.executiveSummary.report.auditor_responsibilities}
+                        {auditorResponsibilitiesText}
                       </p>
                     </div>
                   </div>
 
                   {/* Emphasis of Matter */}
-                  {report.executiveSummary.report.emphasis_of_matter && (
+                  {emphasisOfMatterText && (
                     <div className="mb-8">
                       <h2 className="text-xl font-semibold text-gray-900 mb-4">Emphasis of Matter</h2>
                       <div className="prose prose-gray max-w-none">
                         <p className="text-gray-700 leading-relaxed">
-                          {report.executiveSummary.report.emphasis_of_matter}
+                          {emphasisOfMatterText}
                         </p>
                       </div>
                     </div>
                   )}
 
                   {/* Other Matter */}
-                  {report.executiveSummary.report.other_matter && (
+                  {otherMatterText && (
                     <div className="mb-8">
                       <h2 className="text-xl font-semibold text-gray-900 mb-4">Other Matter</h2>
                       <div className="prose prose-gray max-w-none">
                         <p className="text-gray-700 leading-relaxed">
-                          {report.executiveSummary.report.other_matter}
+                          {otherMatterText}
                         </p>
                       </div>
                     </div>
                   )}
 
                   {/* Other Information */}
-                  {report.executiveSummary.report.other_information && (
+                  {otherInformationText && (
                     <div className="mb-8">
                       <h2 className="text-xl font-semibold text-gray-900 mb-4">Other Information</h2>
                       <div className="prose prose-gray max-w-none">
                         <p className="text-gray-700 leading-relaxed">
-                          {report.executiveSummary.report.other_information}
+                          {otherInformationText}
                         </p>
                       </div>
                     </div>
                   )}
 
                   {/* Legal and Regulatory */}
-                  {report.executiveSummary.report.legal_and_regulatory && (
+                  {legalRegulatoryText && (
                     <div className="mb-8">
                       <h2 className="text-xl font-semibold text-gray-900 mb-4">Legal and Regulatory</h2>
                       <div className="prose prose-gray max-w-none">
                         <p className="text-gray-700 leading-relaxed">
-                          {report.executiveSummary.report.legal_and_regulatory}
+                          {legalRegulatoryText}
                         </p>
                       </div>
                     </div>
@@ -558,7 +632,7 @@ export default function Dashboard() {
                   <div className="mt-12 pt-8 border-t border-gray-300">
                     <div className="text-right">
                       <div className="text-gray-700">
-                        {report.executiveSummary.report.signature_sign_off.split('\n').map((line, index) => (
+                        {signatureLines.map((line, index) => (
                           <div key={index} className="mb-1">
                             {line}
                           </div>

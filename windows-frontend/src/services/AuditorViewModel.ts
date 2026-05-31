@@ -40,6 +40,15 @@ export class AuditorViewModel {
       this.emit('progress', data);
     });
 
+    this.webSocketManager.onDone((data) => {
+      const runId = this.currentRun?.runId;
+      if (!runId) {
+        return;
+      }
+
+      void this.handleCompletion(runId, data);
+    });
+
     this.webSocketManager.onConnected(() => {
       this.emit('connected');
     });
@@ -57,6 +66,8 @@ export class AuditorViewModel {
 
   public async uploadFile(file: File, tenantId: string = 'default_tenant'): Promise<void> {
     try {
+      this.reportUrl = null;
+      this.currentPhase = '';
       this.queuedFiles = [file.name];
 
       // Validate file type
@@ -105,22 +116,28 @@ export class AuditorViewModel {
     for (let i = 0; i < 60; i++) { // Max 5 minutes
       await new Promise(resolve => setTimeout(resolve, 5000));
 
+      if (this.currentRun?.runId !== runId) {
+        return;
+      }
+
+      if (this.uploadState === UploadState.COMPLETED || this.uploadState === UploadState.FAILED) {
+        return;
+      }
+
       try {
         const status = await this.apiClient.getRunStatus(runId);
+        const isComplete =
+          status.status === 'done' ||
+          status.realtime?.phase === 'done' ||
+          Boolean(status.realtime?.reportKey);
+        const isError =
+          status.status === 'error' ||
+          status.realtime?.phase === 'error';
 
-        if (status.status === 'done') {
-          this.updateState(UploadState.COMPLETED, 'Processing complete!');
-          this.webSocketManager.disconnect();
-
-          try {
-            const report = await this.apiClient.getReportUrl(runId);
-            this.reportUrl = report.reportUrl;
-            this.emit('reportReady', report);
-          } catch (error) {
-            console.error('Failed to fetch report URL:', error);
-          }
+        if (isComplete) {
+          await this.handleCompletion(runId, status.realtime);
           return;
-        } else if (status.status === 'error') {
+        } else if (isError) {
           this.updateState(UploadState.FAILED, 'Processing error');
           this.webSocketManager.disconnect();
           return;
@@ -129,6 +146,57 @@ export class AuditorViewModel {
         console.error('Status poll error:', error);
       }
     }
+  }
+
+  private async handleCompletion(runId: string, data?: { phase?: string; percent?: number; lastMessage?: string }): Promise<void> {
+    if (this.currentRun?.runId !== runId) {
+      return;
+    }
+
+    this.currentPhase = data?.phase ?? 'done';
+    this.updateState(
+      UploadState.COMPLETED,
+      data?.lastMessage ?? 'Processing complete!',
+      data?.percent ?? 100
+    );
+    this.webSocketManager.disconnect();
+
+    if (this.reportUrl) {
+      this.emit('reportReady', { reportUrl: this.reportUrl });
+      return;
+    }
+
+    try {
+      const report = await this.fetchReportUrlWithRetry(runId);
+      this.reportUrl = report.reportUrl;
+      this.emit('reportReady', report);
+    } catch (error) {
+      console.error('Failed to fetch report URL after completion:', error);
+      this.statusMessage = 'Audit complete. Report link is still finalizing.';
+      this.emit('stateChange', {
+        state: UploadState.COMPLETED,
+        message: this.statusMessage,
+        progress: this.progress,
+        queuedFiles: [...this.queuedFiles],
+      });
+    }
+  }
+
+  private async fetchReportUrlWithRetry(runId: string, attempts: number = 5, delayMs: number = 1000) {
+    let lastError: unknown;
+
+    for (let attempt = 0; attempt < attempts; attempt++) {
+      try {
+        return await this.apiClient.getReportUrl(runId);
+      } catch (error) {
+        lastError = error;
+        if (attempt < attempts - 1) {
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        }
+      }
+    }
+
+    throw lastError;
   }
 
   public reset(): void {
@@ -151,16 +219,36 @@ export class AuditorViewModel {
     }
 
     if (!this.reportUrl) {
-      const report = await this.apiClient.getReportUrl(runId);
-      this.reportUrl = report.reportUrl;
+      try {
+        const report = await this.apiClient.getReportUrl(runId);
+        this.reportUrl = report.reportUrl;
+      } catch (error) {
+        console.warn('Report URL not available yet, opening dashboard by runId instead:', error);
+      }
     }
 
-    const reportUrl = this.reportUrl;
-    if (!reportUrl) {
-      throw new AuditorError('Report URL is not available yet.');
+    await window.electronAPI.openExternalUrl(this.buildReportViewerUrl(this.reportUrl ?? '', runId));
+  }
+
+  private buildReportViewerUrl(reportUrl: string, runId: string): string {
+    const viewerBaseUrl = import.meta.env.VITE_REPORT_VIEWER_BASE_URL
+      || 'http://localhost:3000/dashboard';
+
+    if (!viewerBaseUrl) {
+      return reportUrl;
     }
 
-    await window.electronAPI.openExternalUrl(reportUrl);
+    try {
+      const viewerUrl = new URL(viewerBaseUrl);
+      viewerUrl.searchParams.set('runId', runId);
+      if (reportUrl && viewerUrl.pathname.includes('/display')) {
+        viewerUrl.searchParams.set('reportUrl', reportUrl);
+      }
+      return viewerUrl.toString();
+    } catch (error) {
+      console.error('Failed to build report viewer URL, falling back to raw report URL:', error);
+      return reportUrl;
+    }
   }
 
   private updateState(state: UploadState, message: string, progress?: number): void {

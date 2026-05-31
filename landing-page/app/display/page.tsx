@@ -96,7 +96,8 @@ function DisplayContent() {
             <ReactMarkdown 
               remarkPlugins={[remarkGfm]}
               components={{
-                code: ({node, inline, className, children, ...props}) => {
+                code: ({className, children, ...props}: any) => {
+                  const inline = Boolean(props.inline);
                   const match = /language-(\w+)/.exec(className || '');
                   return !inline && match ? (
                     <pre className="bg-gray-800 rounded-lg p-4 overflow-x-auto">
